@@ -37,6 +37,7 @@ This mod is licensed under the [CC BY-NC-SA 4.0 License](LICENSE).
 ## Acknowledgments
 
 Special thanks to:
+- [Yuro](https://github.com/onixiya1337) for whole mod in 1.8.9
 - the Minecraft Forge community for providing the tools and resources that make mod development possible.
 - [sarpedon](https://github.com/sarpedondev) for sharing the barebones version of this movement recorder, the ExampleMod template, and for assistance during the development process.
 - [Wyvest](https://github.com/Wyvest) for the beautiful GUI library used to make mod configuration easy for end users.
