@@ -1,76 +1,125 @@
 package xyz.yuro.movementrecorder;
 
-import net.minecraft.command.ICommand;
-import net.minecraft.command.ICommandSender;
-import net.minecraft.util.BlockPos;
-import org.jetbrains.annotations.NotNull;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+public class MovementRecorderCommand {
 
-public class MovementRecorderCommand implements ICommand {
-    protected static ArrayList<String> aliases = new ArrayList<>(Arrays.asList("movrec", "movementrecorder"));
-    protected static ArrayList<String> tabCompletion = new ArrayList<>(Arrays.asList("start", "stop", "play", "delete", "list"));
-
-    @Override
-    public String getCommandName() {
-        return "movrec";
-    }
-
-    @Override
-    public String getCommandUsage(ICommandSender sender) {
-        return "/movrec";
-    }
-
-    @Override
-    public List<String> getCommandAliases() {
-        return aliases;
-    }
-
-    @Override
-    public void processCommand(ICommandSender sender, String[] args) {
-        if (args.length == 2) {
-            if (args[0].equalsIgnoreCase("start")) {
-                MovementRecorder.startRecording(args[1]);
-                return;
-            } else if (args[0].equalsIgnoreCase("play")) {
-                MovementRecorder.playRecording(args[1]);
-                return;
-            } else if (args[0].equalsIgnoreCase("delete")) {
-                MovementRecorder.deleteRecording(args[1]);
-                return;
-            }
-        } else if (args.length == 1) {
-            if (args[0].equalsIgnoreCase("stop")) {
-                MovementRecorder.stopRecording();
-                return;
-            }
-            if (args[0].equalsIgnoreCase("list")) {
-                MovementRecorder.listRecordings();
-                return;
-            }
+    private static final SuggestionProvider<FabricClientCommandSource> RECORDING_SUGGESTIONS = (context, builder) -> {
+        for (String name : MovementRecorder.getRecordingNames()) {
+            builder.suggest(name);
         }
-        LogUtils.sendError("Invalid arguments. Usage: /movrec <start/play/delete/stop/list> <filename>");
-    }
+        return builder.buildFuture();
+    };
 
-    @Override
-    public boolean canCommandSenderUseCommand(ICommandSender sender) {
-        return true;
-    }
-
-    @Override
-    public List<String> addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
-        return tabCompletion;
-    }
-
-    @Override
-    public boolean isUsernameIndex(String[] args, int index) {
-        return false;
-    }
-
-    @Override
-    public int compareTo(@NotNull ICommand o) {
-        return 0;
+    public static void register() {
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            dispatcher.register(ClientCommandManager.literal("movrec")
+                    .then(ClientCommandManager.literal("start")
+                            .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                                    .executes(context -> {
+                                        String name = StringArgumentType.getString(context, "name");
+                                        MovementRecorder.startRecording(name);
+                                        return 1;
+                                    })
+                            )
+                    )
+                    .then(ClientCommandManager.literal("stop")
+                            .executes(context -> {
+                                MovementRecorder.stopRecording();
+                                return 1;
+                            })
+                    )
+                    .then(ClientCommandManager.literal("play")
+                            .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                                    .suggests(RECORDING_SUGGESTIONS)
+                                    .executes(context -> {
+                                        String name = StringArgumentType.getString(context, "name");
+                                        MovementRecorder.playRecording(name);
+                                        return 1;
+                                    })
+                            )
+                    )
+                    .then(ClientCommandManager.literal("delete")
+                            .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                                    .suggests(RECORDING_SUGGESTIONS)
+                                    .executes(context -> {
+                                        String name = StringArgumentType.getString(context, "name");
+                                        MovementRecorder.deleteRecording(name);
+                                        return 1;
+                                    })
+                            )
+                    )
+                    .then(ClientCommandManager.literal("list")
+                            .executes(context -> {
+                                MovementRecorder.listRecordings();
+                                return 1;
+                            })
+                    )
+                    .then(ClientCommandManager.literal("config")
+                            .then(ClientCommandManager.literal("rotationType")
+                                    .then(ClientCommandManager.argument("value", StringArgumentType.word())
+                                            .suggests((context, builder) -> {
+                                                builder.suggest("closest90");
+                                                builder.suggest("recording");
+                                                builder.suggest("relative");
+                                                return builder.buildFuture();
+                                            })
+                                            .executes(context -> {
+                                                String value = StringArgumentType.getString(context, "value");
+                                                if (value.equalsIgnoreCase("closest90")) {
+                                                    MovementRecorderConfig.rotationType = 0;
+                                                } else if (value.equalsIgnoreCase("recording")) {
+                                                    MovementRecorderConfig.rotationType = 1;
+                                                } else if (value.equalsIgnoreCase("relative")) {
+                                                    MovementRecorderConfig.rotationType = 2;
+                                                } else {
+                                                    LogUtils.sendError("Invalid value. Use: closest90, recording, relative");
+                                                    return 0;
+                                                }
+                                                MovementRecorderConfig.save();
+                                                LogUtils.sendSuccess("Rotation type set to: " + value);
+                                                return 1;
+                                            })
+                                    )
+                            )
+                            .then(ClientCommandManager.literal("removeStartDelay")
+                                    .then(ClientCommandManager.argument("value", StringArgumentType.word())
+                                            .suggests((context, builder) -> {
+                                                builder.suggest("true");
+                                                builder.suggest("false");
+                                                return builder.buildFuture();
+                                            })
+                                            .executes(context -> {
+                                                String value = StringArgumentType.getString(context, "value");
+                                                MovementRecorderConfig.removeStartDelay = Boolean.parseBoolean(value);
+                                                MovementRecorderConfig.save();
+                                                LogUtils.sendSuccess("Remove start delay: " + MovementRecorderConfig.removeStartDelay);
+                                                return 1;
+                                            })
+                                    )
+                            )
+                            .then(ClientCommandManager.literal("removeEndDelay")
+                                    .then(ClientCommandManager.argument("value", StringArgumentType.word())
+                                            .suggests((context, builder) -> {
+                                                builder.suggest("true");
+                                                builder.suggest("false");
+                                                return builder.buildFuture();
+                                            })
+                                            .executes(context -> {
+                                                String value = StringArgumentType.getString(context, "value");
+                                                MovementRecorderConfig.removeEndDelay = Boolean.parseBoolean(value);
+                                                MovementRecorderConfig.save();
+                                                LogUtils.sendSuccess("Remove end delay: " + MovementRecorderConfig.removeEndDelay);
+                                                return 1;
+                                            })
+                                    )
+                            )
+                    )
+            );
+        });
     }
 }

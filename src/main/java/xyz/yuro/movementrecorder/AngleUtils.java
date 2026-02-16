@@ -1,25 +1,22 @@
 package xyz.yuro.movementrecorder;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 public class AngleUtils {
-    private static final Minecraft mc = Minecraft.getMinecraft();
+    private static final MinecraftClient mc = MinecraftClient.getInstance();
 
     public static float get360RotationYaw(float yaw) {
         return (yaw % 360 + 360) % 360;
     }
+
     public static float normalizeAngle(float angle) {
-        while (angle > 180) {
-            angle -= 360;
-        }
-        while (angle <= -180) {
-            angle += 360;
-        }
+        while (angle > 180) angle -= 360;
+        while (angle <= -180) angle += 360;
         return angle;
     }
 
     public static float get360RotationYaw() {
-        return get360RotationYaw(mc.thePlayer.rotationYaw);
+        return get360RotationYaw(mc.player.getYaw());
     }
 
     public static float clockwiseDifference(float initialYaw360, float targetYaw360) {
@@ -35,14 +32,10 @@ public class AngleUtils {
     }
 
     public static float getClosest90() {
-        if (get360RotationYaw() < 45 || get360RotationYaw() > 315) {
-            return 0f;
-        } else if (get360RotationYaw() < 135) {
-            return 90f;
-        } else if (get360RotationYaw() < 225) {
-            return 180f;
-        } else {
-            return 270f;
-        }
+        float yaw = get360RotationYaw();
+        if (yaw < 45 || yaw > 315) return 0f;
+        else if (yaw < 135) return 90f;
+        else if (yaw < 225) return 180f;
+        else return 270f;
     }
 }

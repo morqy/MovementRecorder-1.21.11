@@ -1,28 +1,47 @@
 package xyz.yuro.movementrecorder;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 public class LogUtils {
-    private static final Minecraft mc = Minecraft.getMinecraft();
-    public synchronized static void sendLog(ChatComponentText chat) {
-        if(mc.thePlayer != null)
-            mc.thePlayer.addChatMessage(chat);
-    }
+
     public static void sendMessage(String message) {
-        sendLog(new ChatComponentText(
-                EnumChatFormatting.DARK_AQUA + "Movement Recorder " + EnumChatFormatting.DARK_GRAY + "» " + EnumChatFormatting.GRAY + message
-        ));
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.player != null) {
+            mc.player.sendMessage(
+                    Text.literal("")
+                            .append(Text.literal("Movement Recorder ").formatted(Formatting.DARK_AQUA))
+                            .append(Text.literal("» ").formatted(Formatting.DARK_GRAY))
+                            .append(Text.literal(message).formatted(Formatting.GRAY)),
+                    false
+            );
+        }
     }
+
     public static void sendError(String message) {
-        sendLog(new ChatComponentText(
-                EnumChatFormatting.DARK_RED + "Movement Recorder " + EnumChatFormatting.DARK_GRAY + "» " + EnumChatFormatting.RED + message
-        ));
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.player != null) {
+            mc.player.sendMessage(
+                    Text.literal("")
+                            .append(Text.literal("Movement Recorder ").formatted(Formatting.DARK_RED))
+                            .append(Text.literal("» ").formatted(Formatting.DARK_GRAY))
+                            .append(Text.literal(message).formatted(Formatting.RED)),
+                    false
+            );
+        }
     }
+
     public static void sendSuccess(String message) {
-        sendLog(new ChatComponentText(
-                EnumChatFormatting.DARK_GREEN + "Movement Recorder " + EnumChatFormatting.DARK_GRAY + "» " + EnumChatFormatting.GREEN + message
-        ));
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.player != null) {
+            mc.player.sendMessage(
+                    Text.literal("")
+                            .append(Text.literal("Movement Recorder ").formatted(Formatting.DARK_GREEN))
+                            .append(Text.literal("» ").formatted(Formatting.DARK_GRAY))
+                            .append(Text.literal(message).formatted(Formatting.GREEN)),
+                    false
+            );
+        }
     }
 }

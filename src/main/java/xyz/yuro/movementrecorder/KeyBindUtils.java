@@ -1,22 +1,17 @@
 package xyz.yuro.movementrecorder;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.MinecraftClient;
+import xyz.yuro.movementrecorder.mixins.MinecraftClientAccessor;
 
-public class KeyBindUtils
-{
-    private static final Minecraft mc = Minecraft.getMinecraft();
+public class KeyBindUtils {
+    private static final MinecraftClient mc = MinecraftClient.getInstance();
 
     public static void rightClick() {
-        if (!ReflectionUtils.invoke(mc, "func_147121_ag")) {
-            ReflectionUtils.invoke(mc, "rightClickMouse");
-        }
+        ((MinecraftClientAccessor) mc).invokeDoItemUse();
     }
 
     public static void leftClick() {
-        if (!ReflectionUtils.invoke(mc, "func_147116_af")) {
-            ReflectionUtils.invoke(mc, "clickMouse");
-        }
+        ((MinecraftClientAccessor) mc).invokeDoAttack();
     }
 
     public static void stopMovement() {
@@ -24,15 +19,15 @@ public class KeyBindUtils
     }
 
     public static void stopMovement(boolean ignoreAttack) {
-        KeyBinding.setKeyBindState(KeyBindUtils.mc.gameSettings.keyBindForward.getKeyCode(), false);
-        KeyBinding.setKeyBindState(KeyBindUtils.mc.gameSettings.keyBindBack.getKeyCode(), false);
-        KeyBinding.setKeyBindState(KeyBindUtils.mc.gameSettings.keyBindRight.getKeyCode(), false);
-        KeyBinding.setKeyBindState(KeyBindUtils.mc.gameSettings.keyBindLeft.getKeyCode(), false);
+        mc.options.forwardKey.setPressed(false);
+        mc.options.backKey.setPressed(false);
+        mc.options.rightKey.setPressed(false);
+        mc.options.leftKey.setPressed(false);
         if (!ignoreAttack) {
-            KeyBinding.setKeyBindState(KeyBindUtils.mc.gameSettings.keyBindAttack.getKeyCode(), false);
+            mc.options.attackKey.setPressed(false);
         }
-        KeyBinding.setKeyBindState(KeyBindUtils.mc.gameSettings.keyBindSneak.getKeyCode(), false);
-        KeyBinding.setKeyBindState(KeyBindUtils.mc.gameSettings.keyBindJump.getKeyCode(), false);
-        KeyBinding.setKeyBindState(KeyBindUtils.mc.gameSettings.keyBindSprint.getKeyCode(), false);
+        mc.options.sneakKey.setPressed(false);
+        mc.options.jumpKey.setPressed(false);
+        mc.options.sprintKey.setPressed(false);
     }
 }

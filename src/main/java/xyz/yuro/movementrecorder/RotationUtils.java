@@ -1,50 +1,43 @@
+
 package xyz.yuro.movementrecorder;
 
-import net.minecraft.client.Minecraft;
-import org.apache.commons.lang3.tuple.MutablePair;
-import static cc.polyfrost.oneconfig.libs.universal.UMath.wrapAngleTo180;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.math.MathHelper;
 
 public class RotationUtils {
-    private final static Minecraft mc = Minecraft.getMinecraft();
+    private static final MinecraftClient mc = MinecraftClient.getInstance();
     public boolean rotating;
     public boolean completed;
 
     private long startTime;
     private long endTime;
 
-    MutablePair<Float, Float> start = new MutablePair<>(0f, 0f);
-    MutablePair<Float, Float> target = new MutablePair<>(0f, 0f);
-    MutablePair<Float, Float> difference = new MutablePair<>(0f, 0f);
+    private float startYaw, startPitch;
+    private float targetYaw, targetPitch;
 
     public void easeTo(float yaw, float pitch, long time) {
         completed = false;
         rotating = true;
         startTime = System.currentTimeMillis();
         endTime = System.currentTimeMillis() + time;
-        start.setLeft(mc.thePlayer.rotationYaw);
-        start.setRight(mc.thePlayer.rotationPitch);
-        MutablePair<Float, Float> neededChange = getNeededChange(start, new MutablePair<>(yaw, pitch));
-        target.setLeft(start.left + neededChange.left);
-        target.setRight(start.right + neededChange.right);
-        getDifference();
-    }
+        startYaw = mc.player.getYaw();
+        startPitch = mc.player.getPitch();
 
-    public static MutablePair<Float, Float> getNeededChange(MutablePair<Float, Float> startRot, MutablePair<Float, Float> endRot) {
-        float yawDiff = (float) (wrapAngleTo180(endRot.getLeft()) - wrapAngleTo180(startRot.getLeft()));
-
+        float yawDiff = MathHelper.wrapDegrees(yaw) - MathHelper.wrapDegrees(startYaw);
         yawDiff = AngleUtils.normalizeAngle(yawDiff);
 
-        return new MutablePair<>(yawDiff, endRot.getRight() - startRot.right);
+        targetYaw = startYaw + yawDiff;
+        targetPitch = pitch;
     }
 
     public void update() {
+        if (mc.player == null) return;
         if (System.currentTimeMillis() <= endTime) {
-            mc.thePlayer.rotationYaw = interpolate(start.getLeft(), target.getLeft());
-            mc.thePlayer.rotationPitch = interpolate(start.getRight(), target.getRight());
-        }
-        else if (!completed) {
-            mc.thePlayer.rotationYaw = target.left;
-            mc.thePlayer.rotationPitch = target.right;
+            mc.player.setYaw(interpolate(startYaw, targetYaw));
+            mc.player.setPitch(interpolate(startPitch, targetPitch));
+        } else if (!completed) {
+            mc.player.setYaw(targetYaw);
+            mc.player.setPitch(targetPitch);
             completed = true;
             rotating = false;
         }
@@ -55,16 +48,12 @@ public class RotationUtils {
         rotating = false;
     }
 
-    private void getDifference() {
-        difference.setLeft(AngleUtils.smallestAngleDifference(AngleUtils.get360RotationYaw(), target.left));
-        difference.setRight(target.right - start.right);
-    }
-
     private float interpolate(float start, float end) {
-        return (end - start) * easeOutCubic((float) (System.currentTimeMillis() - startTime) / (endTime - startTime)) + start;
+        float progress = (float) (System.currentTimeMillis() - startTime) / (endTime - startTime);
+        return (end - start) * easeOutCubic(progress) + start;
     }
 
-    public float easeOutCubic(double number) {
+    private float easeOutCubic(float number) {
         return (float) Math.max(0, Math.min(1, 1 - Math.pow(1 - number, 3)));
     }
 }

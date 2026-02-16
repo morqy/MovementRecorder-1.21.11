@@ -1,9 +1,0 @@
-{
-  "compatibilityLevel": "JAVA_8",
-  "package": "xyz.yuro.movementrecorder.mixins",
-  "mixins": [
-    "ModListMixin"
-  ],
-  "client": [],
-  "verbose": true
-}

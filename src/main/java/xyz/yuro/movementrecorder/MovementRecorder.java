@@ -1,20 +1,18 @@
 package xyz.yuro.movementrecorder;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.util.EnumChatFormatting;
-import net.minecraftforge.client.event.RenderWorldLastEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.MinecraftClient;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MovementRecorder {
-    private static List<Movement> movements = new ArrayList<>();
+    private static final List<Movement> movements = new ArrayList<>();
     private static boolean isMovementRecording = false;
     private static boolean isMovementPlaying = false;
     private static boolean isMovementReading = false;
@@ -22,27 +20,28 @@ public class MovementRecorder {
     private static int playingIndex = 0;
     private static float yawDifference = 0;
     private static String recordingName = "";
-    static Minecraft mc = Minecraft.getMinecraft();
-    private static RotationUtils rotateBeforePlaying = new RotationUtils();
-    private static RotationUtils rotateDuringPlaying = new RotationUtils();
+    private static final MinecraftClient mc = MinecraftClient.getInstance();
+    private static final RotationUtils rotateBeforePlaying = new RotationUtils();
+    private static final RotationUtils rotateDuringPlaying = new RotationUtils();
 
     public static class Movement {
-        private final boolean forward;
-        private final boolean left;
-        private final boolean backwards;
-        private final boolean right;
-        private final boolean sneak;
-        private final boolean sprint;
-        private final boolean fly;
-        private final boolean jump;
-        private final boolean attack;
-        private final boolean useItem;
-        private final float yaw;
-        private final float pitch;
-        private int delay;
+        final boolean forward;
+        final boolean left;
+        final boolean backwards;
+        final boolean right;
+        final boolean sneak;
+        final boolean sprint;
+        final boolean fly;
+        final boolean jump;
+        final boolean attack;
+        final boolean useItem;
+        final float yaw;
+        final float pitch;
+        int delay;
 
-        public Movement(boolean forward, boolean left, boolean backwards, boolean right, boolean sneak, boolean sprint, boolean fly,
-                        boolean jump, boolean attack, boolean useItem, float yaw, float pitch, int delay) {
+        public Movement(boolean forward, boolean left, boolean backwards, boolean right,
+                        boolean sneak, boolean sprint, boolean fly, boolean jump,
+                        boolean attack, boolean useItem, float yaw, float pitch, int delay) {
             this.forward = forward;
             this.left = left;
             this.backwards = backwards;
@@ -57,6 +56,7 @@ public class MovementRecorder {
             this.pitch = pitch;
             this.delay = delay;
         }
+
         public String toCsv() {
             return forward + ";" + left + ";" + backwards + ";" + right + ";" +
                     sneak + ";" + sprint + ";" + fly + ";" + jump + ";" +
@@ -64,47 +64,43 @@ public class MovementRecorder {
         }
     }
 
-    @SubscribeEvent
-    public void onTickRecordMovement(ClientTickEvent event) {
-        if (mc.thePlayer == null || mc.theWorld == null)
-            return;
-        if (!isMovementRecording)
-            return;
+    public static void onTickRecord() {
+        if (mc.player == null || mc.world == null) return;
+        if (!isMovementRecording) return;
 
         Movement currentMovement = getCurrentMovement();
 
         if (!movements.isEmpty()) {
-            Movement previousMovement = movements.get(movements.size() - 1);
-            if (currentMovement.forward == previousMovement.forward &&
-                    currentMovement.left == previousMovement.left &&
-                    currentMovement.backwards == previousMovement.backwards &&
-                    currentMovement.right == previousMovement.right &&
-                    currentMovement.sneak == previousMovement.sneak &&
-                    currentMovement.sprint == previousMovement.sprint &&
-                    currentMovement.fly == previousMovement.fly &&
-                    currentMovement.jump == previousMovement.jump &&
-                    currentMovement.attack == previousMovement.attack &&
-                    currentMovement.useItem == previousMovement.useItem &&
-                    currentMovement.yaw == previousMovement.yaw &&
-                    currentMovement.pitch == previousMovement.pitch) {
-                previousMovement.delay++;
+            Movement prev = movements.get(movements.size() - 1);
+            if (currentMovement.forward == prev.forward &&
+                    currentMovement.left == prev.left &&
+                    currentMovement.backwards == prev.backwards &&
+                    currentMovement.right == prev.right &&
+                    currentMovement.sneak == prev.sneak &&
+                    currentMovement.sprint == prev.sprint &&
+                    currentMovement.fly == prev.fly &&
+                    currentMovement.jump == prev.jump &&
+                    currentMovement.attack == prev.attack &&
+                    currentMovement.useItem == prev.useItem &&
+                    currentMovement.yaw == prev.yaw &&
+                    currentMovement.pitch == prev.pitch) {
+                prev.delay++;
                 return;
             }
         }
         movements.add(currentMovement);
     }
 
-    @SubscribeEvent
-    public void onTickPlayMovement(ClientTickEvent event) {
-        if (mc.thePlayer == null || mc.theWorld == null)
-            return;
-        if (!isMovementPlaying || isMovementReading)
-            return;
+    public static void onTickPlay() {
+        if (mc.player == null || mc.world == null) return;
+        if (!isMovementPlaying || isMovementReading) return;
+
         if (movements.isEmpty()) {
             LogUtils.sendError("The file is empty!");
             stopRecording();
             return;
         }
+
         if (rotateBeforePlaying.rotating) {
             KeyBindUtils.stopMovement();
             return;
@@ -118,7 +114,7 @@ public class MovementRecorder {
             calculatedYaw = movement.yaw + yawDifference;
         } else if (MovementRecorderConfig.rotationType == 1) { // Recording's yaw
             calculatedYaw = movement.yaw;
-        } else if (MovementRecorderConfig.rotationType == 2) { // Player's yaw (aka relative)
+        } else if (MovementRecorderConfig.rotationType == 2) { // Player's yaw (relative)
             calculatedYaw = movement.yaw - yawDifference;
         }
         rotateDuringPlaying.easeTo(calculatedYaw, movement.pitch, 49);
@@ -132,12 +128,12 @@ public class MovementRecorder {
         if (playingIndex >= movements.size()) {
             isMovementPlaying = false;
             resetTimers();
+            KeyBindUtils.stopMovement();
             LogUtils.sendMessage("Playing has been finished.");
         }
     }
 
-    @SubscribeEvent
-    public void onWorldLastRender(RenderWorldLastEvent event) {
+    public static void onRender() {
         if (rotateDuringPlaying.rotating) {
             rotateDuringPlaying.update();
             return;
@@ -205,7 +201,8 @@ public class MovementRecorder {
         resetTimers();
         isMovementReading = true;
         try {
-            List<String> lines = java.nio.file.Files.readAllLines(new File(mc.mcDataDir + "\\movementrecorder\\" + name + ".movement").toPath());
+            Path recordingPath = getRecordingDir().resolve(name + ".movement");
+            List<String> lines = Files.readAllLines(recordingPath);
             for (String line : lines) {
                 if (!isMovementReading) return;
                 String[] split = line.split(";");
@@ -227,7 +224,7 @@ public class MovementRecorder {
                 movements.add(movement);
             }
         } catch (Exception e) {
-            LogUtils.sendError(EnumChatFormatting.RED + "An error occurred while playing the recording.");
+            LogUtils.sendError("An error occurred while playing the recording.");
             e.printStackTrace();
             isMovementReading = false;
             return;
@@ -242,47 +239,37 @@ public class MovementRecorder {
             calculatedYaw = movement.yaw + yawDifference;
         } else if (MovementRecorderConfig.rotationType == 1) { // Recording's yaw
             calculatedYaw = movement.yaw;
-        } else if (MovementRecorderConfig.rotationType == 2) { // Player's yaw (aka relative)
+        } else if (MovementRecorderConfig.rotationType == 2) { // Player's yaw (relative)
             yawDifference = AngleUtils.normalizeAngle(movement.yaw - AngleUtils.get360RotationYaw());
-            calculatedYaw = mc.thePlayer.rotationYaw;
+            calculatedYaw = mc.player.getYaw();
         }
         rotateBeforePlaying.easeTo(calculatedYaw, movement.pitch, 500);
     }
 
     private static void saveRecording() {
-        File recordingDir = new File(mc.mcDataDir, "movementrecorder");
-        if (!recordingDir.exists()) {
-            boolean created = recordingDir.mkdirs();
-            if (!created) {
-                LogUtils.sendError("Failed to create recording directory.");
-                return;
-            }
+        Path recordingDir = getRecordingDir();
+        try {
+            Files.createDirectories(recordingDir);
+        } catch (IOException e) {
+            LogUtils.sendError("Failed to create recording directory.");
+            e.printStackTrace();
+            return;
         }
 
-        File recordingFile = new File(recordingDir, recordingName + ".movement");
+        Path recordingFile = recordingDir.resolve(recordingName + ".movement");
         try {
-            if (!recordingFile.exists()) {
-                boolean created = recordingFile.createNewFile();
-                if (!created) {
-                    LogUtils.sendError("Failed to create recording file.");
-                    return;
-                }
-            }
-            if (MovementRecorderConfig.removeStartDelay)
+            if (MovementRecorderConfig.removeStartDelay && !movements.isEmpty())
                 movements.get(0).delay = 0;
-            if (MovementRecorderConfig.removeEndDelay)
+            if (MovementRecorderConfig.removeEndDelay && !movements.isEmpty())
                 movements.get(movements.size() - 1).delay = 0;
-            try (PrintWriter pw = new PrintWriter(recordingFile)) {
+            try (PrintWriter pw = new PrintWriter(recordingFile.toFile())) {
                 for (Movement movement : movements) {
                     pw.println(movement.toCsv());
                 }
                 LogUtils.sendSuccess("Recording " + recordingName + " has been saved.");
-            } catch (Exception e) {
-                LogUtils.sendError("An error occurred while saving the recording.");
-                e.printStackTrace();
             }
-        } catch (IOException e) {
-            LogUtils.sendError("An error occurred while creating the recording file.");
+        } catch (Exception e) {
+            LogUtils.sendError("An error occurred while saving the recording.");
             e.printStackTrace();
         }
         movements.clear();
@@ -302,19 +289,13 @@ public class MovementRecorder {
             LogUtils.sendError("The recording is being read now!");
             return;
         }
-        File recordingDir = new File(mc.mcDataDir, "movementrecorder");
-        File recordingFile = new File(recordingDir, name + ".movement");
-
-        if (recordingFile.exists()) {
+        Path recordingFile = getRecordingDir().resolve(name + ".movement");
+        if (Files.exists(recordingFile)) {
             try {
-                boolean deleted = recordingFile.delete();
-                if (deleted) {
-                    LogUtils.sendSuccess("Recording " + name + " has been deleted.");
-                } else {
-                    LogUtils.sendError("Failed to delete recording " + name + ".");
-                }
-            } catch (SecurityException e) {
-                LogUtils.sendError("Security exception occurred while deleting recording " + name + ".");
+                Files.delete(recordingFile);
+                LogUtils.sendSuccess("Recording " + name + " has been deleted.");
+            } catch (IOException e) {
+                LogUtils.sendError("Failed to delete recording " + name + ".");
                 e.printStackTrace();
             }
         } else {
@@ -323,17 +304,13 @@ public class MovementRecorder {
     }
 
     public static void listRecordings() {
-        File recordingDir = new File(mc.mcDataDir, "movementrecorder");
-        if (!recordingDir.exists() || !recordingDir.isDirectory()) {
+        Path recordingDir = getRecordingDir();
+        if (!Files.exists(recordingDir) || !Files.isDirectory(recordingDir)) {
             LogUtils.sendError("Recording directory does not exist.");
             return;
         }
-        File[] recordingFiles = recordingDir.listFiles();
-        if (recordingFiles == null) {
-            LogUtils.sendError("An error occurred while listing recordings.");
-            return;
-        }
-        if (recordingFiles.length == 0) {
+        File[] recordingFiles = recordingDir.toFile().listFiles();
+        if (recordingFiles == null || recordingFiles.length == 0) {
             LogUtils.sendError("No recordings found.");
             return;
         }
@@ -345,46 +322,61 @@ public class MovementRecorder {
         }
     }
 
+    public static List<String> getRecordingNames() {
+        List<String> names = new ArrayList<>();
+        Path recordingDir = getRecordingDir();
+        if (!Files.exists(recordingDir)) return names;
+        File[] files = recordingDir.toFile().listFiles();
+        if (files == null) return names;
+        for (File file : files) {
+            if (file.isFile() && file.getName().endsWith(".movement")) {
+                names.add(file.getName().replace(".movement", ""));
+            }
+        }
+        return names;
+    }
+
+    private static Path getRecordingDir() {
+        return FabricLoader.getInstance().getGameDir().resolve("movementrecorder");
+    }
 
     private static void resetTimers() {
         rotateBeforePlaying.reset();
         rotateDuringPlaying.reset();
     }
 
-    private void setPlayerMovement(Movement movement) {
-        KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), movement.forward);
-        KeyBinding.setKeyBindState(mc.gameSettings.keyBindLeft.getKeyCode(), movement.left);
-        KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), movement.backwards);
-        KeyBinding.setKeyBindState(mc.gameSettings.keyBindRight.getKeyCode(), movement.right);
-        KeyBinding.setKeyBindState(mc.gameSettings.keyBindSneak.getKeyCode(), movement.sneak);
-        mc.thePlayer.setSprinting(movement.sprint);
-        if (mc.thePlayer.capabilities.allowFlying && mc.thePlayer.capabilities.isFlying != movement.fly)
-            mc.thePlayer.capabilities.isFlying = movement.fly;
-        KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), movement.jump);
+    private static void setPlayerMovement(Movement movement) {
+        mc.options.forwardKey.setPressed(movement.forward);
+        mc.options.leftKey.setPressed(movement.left);
+        mc.options.backKey.setPressed(movement.backwards);
+        mc.options.rightKey.setPressed(movement.right);
+        mc.options.sneakKey.setPressed(movement.sneak);
+        mc.player.setSprinting(movement.sprint);
+        if (mc.player.getAbilities().allowFlying && mc.player.getAbilities().flying != movement.fly)
+            mc.player.getAbilities().flying = movement.fly;
+        mc.options.jumpKey.setPressed(movement.jump);
         if (currentDelay == 0) {
-            if (movement.attack)
-                KeyBindUtils.leftClick();
-            if (movement.useItem)
-                KeyBindUtils.rightClick();
+            if (movement.attack) KeyBindUtils.leftClick();
+            if (movement.useItem) KeyBindUtils.rightClick();
         }
-        KeyBinding.setKeyBindState(mc.gameSettings.keyBindAttack.getKeyCode(), movement.attack);
-        KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), movement.useItem);
+        mc.options.attackKey.setPressed(movement.attack);
+        mc.options.useKey.setPressed(movement.useItem);
     }
 
-    private Movement getCurrentMovement() {
+    private static Movement getCurrentMovement() {
         return new Movement(
-                mc.gameSettings.keyBindForward.isKeyDown(),
-                mc.gameSettings.keyBindLeft.isKeyDown(),
-                mc.gameSettings.keyBindBack.isKeyDown(),
-                mc.gameSettings.keyBindRight.isKeyDown(),
-                mc.gameSettings.keyBindSneak.isKeyDown(),
-                mc.thePlayer.isSprinting(),
-                mc.thePlayer.capabilities.isFlying,
-                mc.gameSettings.keyBindJump.isKeyDown(),
-                mc.gameSettings.keyBindAttack.isKeyDown(),
-                mc.gameSettings.keyBindUseItem.isKeyDown(),
-                mc.thePlayer.rotationYaw,
-                mc.thePlayer.rotationPitch,
+                mc.options.forwardKey.isPressed(),
+                mc.options.leftKey.isPressed(),
+                mc.options.backKey.isPressed(),
+                mc.options.rightKey.isPressed(),
+                mc.options.sneakKey.isPressed(),
+                mc.player.isSprinting(),
+                mc.player.getAbilities().flying,
+                mc.options.jumpKey.isPressed(),
+                mc.options.attackKey.isPressed(),
+                mc.options.useKey.isPressed(),
+                mc.player.getYaw(),
+                mc.player.getPitch(),
                 0
         );
     }

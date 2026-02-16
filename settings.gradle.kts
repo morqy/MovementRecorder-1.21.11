@@ -1,11 +1,8 @@
 pluginManagement {
     repositories {
-        maven("https://repo.polyfrost.cc/releases")
-        gradlePluginPortal()
+        maven("https://maven.fabricmc.net/")
         mavenCentral()
-        maven("https://maven.fabricmc.net")
-        maven("https://maven.architectury.dev")
-        maven("https://maven.minecraftforge.net")
+        gradlePluginPortal()
     }
 }
 
