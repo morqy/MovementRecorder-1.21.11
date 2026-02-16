@@ -1,5 +1,22 @@
+# Gradle
 .gradle/
+build/
+
+# IDE
 .idea/
 .vscode/
-build/
+*.iml
+bin/
+
+# Runtime
 run/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+*.log
+*.txt
+!README.md
+!LICENSE

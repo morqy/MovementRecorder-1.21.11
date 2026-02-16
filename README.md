@@ -1,34 +1,60 @@
-# MovementRecorder Forge Mod 1.21.11
+# MovementRecorder — Fabric Mod for Minecraft 1.21.11
 
-MovementRecorder is a Minecraft Forge Mod for version 1.8.9 that allows you to record and playback player movements. This mod is intended to enhance your gameplay experience by enabling you to record and replay movements within the game.
+MovementRecorder is a client-side Fabric mod for Minecraft 1.21.11 that allows you to record and play back player movements. Record your movement, save it to a file, and replay it at any time.
+
+> **Note:** This is a port of the original [Forge 1.8.9 mod](https://github.com/onixiya1337/MovementRecorder) by [Yuro](https://github.com/onixiya1337), rewritten for Fabric 1.21.11.
+
+## Requirements
+
+- Minecraft **1.21.11**
+- [Fabric Loader](https://fabricmc.net/) **0.18.4+**
+- [Fabric API](https://modrinth.com/mod/fabric-api) **0.141.3+**
 
 ## Installation
 
-1. Make sure you have Minecraft Forge for version 1.8.9 installed on your client.
-2. Download the latest release of the MovementRecorder mod from the [Releases](https://github.com/onixiya1337/MovementRecorder/releases) page.
-3. Place the downloaded JAR file into your Minecraft mods directory (`%appdata%/.minecraft/mods`).
+1. Install the Fabric Loader for Minecraft 1.21.11.
+2. Download the latest release JAR from the [Releases](https://github.com/onixiya1337/MovementRecorder/releases) page.
+3. Place the JAR file into your Minecraft mods directory (`%appdata%/.minecraft/mods`).
+4. Make sure Fabric API is also in the mods directory.
 
 ## Usage
 
-To use the MovementRecorder mod, you can utilize the following commands in the Minecraft chat:
+### Keybind
 
-- `/movementrecorder`: Displays a list of all available commands.
-- `/movementrecorder start <name>`: Initiates the recording of the player's movement under the specified name.
-- `/movementrecorder stop`: Stops the recording or playback of the recorded movement.
-- `/movementrecorder play <name>`: Replays the recorded movement with the given name.
-- `/movementrecorder list`: Lists all recorded movements.
-- `/movementrecorder delete <name>`: Deletes the recorded movement.
+- **N** — Stop recording/playback (configurable in Controls settings under the **Misc** category).
 
-## Implementation
+### Commands
 
-You can use this mod as a dependency in your own project by adding the following line to your `build.gradle.kts` file:
-```kotlin
-modImplementation("com.github.onixiya1337:MovementRecorder:master-SNAPSHOT")
+All commands use the `/movrec` prefix:
+
+| Command | Description |
+|---|---|
+| `/movrec start <name>` | Start recording movement under the given name |
+| `/movrec stop` | Stop recording or playback |
+| `/movrec play <name>` | Play back a saved recording |
+| `/movrec list` | List all saved recordings |
+| `/movrec delete <name>` | Delete a saved recording |
+| `/movrec config rotationType <0\|1\|2>` | Set rotation mode: 0 = none, 1 = snap, 2 = smooth |
+| `/movrec config removeStartDelay <true\|false>` | Skip idle ticks at the start of playback |
+| `/movrec config removeEndDelay <true\|false>` | Skip idle ticks at the end of playback |
+
+### Recordings
+
+Recordings are saved as `.csv` files in `.minecraft/movementrecorder/`. Each tick stores position, rotation, key states, and sprinting/sneaking flags.
+
+## Building from Source
+
+```bash
+./gradlew build
 ```
+
+The output JAR will be in `build/libs/`.
+
+**Requirements:** Java 21, Gradle 9.2+.
 
 ## Contributing
 
-Contributions to the MovementRecorder mod are welcome! If you find any issues, have suggestions for improvements, or want to contribute new features, feel free to create an [issue](https://github.com/onixiya1337/MovementRecorder/issues) or submit a [pull request](https://github.com/onixiya1337/MovementRecorder/pulls).
+Contributions are welcome! Feel free to open an [issue](https://github.com/onixiya1337/MovementRecorder/issues) or submit a [pull request](https://github.com/onixiya1337/MovementRecorder/pulls).
 
 ## License
 
@@ -36,12 +62,6 @@ This mod is licensed under the [CC BY-NC-SA 4.0 License](LICENSE).
 
 ## Acknowledgments
 
-Special thanks to:
-- [Yuro](https://github.com/onixiya1337) for whole mod in 1.8.9
-- the Minecraft Forge community for providing the tools and resources that make mod development possible.
-- [sarpedon](https://github.com/sarpedondev) for sharing the barebones version of this movement recorder, the ExampleMod template, and for assistance during the development process.
-- [Wyvest](https://github.com/Wyvest) for the beautiful GUI library used to make mod configuration easy for end users.
-
----
-
-If you encounter any issues, have questions, or would like to get in touch, feel free to reach out by creating an issue on this repository.
+- [Yuro](https://github.com/onixiya1337) — original Forge 1.8.9 mod
+- [sarpedon](https://github.com/sarpedondev) — barebones movement recorder and early development help
+- The [Fabric](https://fabricmc.net/) community for the modding toolchain
